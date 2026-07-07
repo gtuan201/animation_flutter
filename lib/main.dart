@@ -1,8 +1,10 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:untitled/circular_reveal_transition.dart';
 import 'package:untitled/fluid_morphing_transition.dart';
 import 'package:untitled/fluid_toast.dart';
 import 'package:untitled/morphing_typography.dart';
+import 'package:untitled/morphing_quick_actions.dart';
 
 void main() {
   runApp(const MyApp());
@@ -97,7 +99,7 @@ class _CircularRevealDemoState extends State<CircularRevealDemo> {
 }
 
 /// MÀN HÌNH BÊN DƯỚI (Base Screen / Dashboard)
-class BaseDashboardScreen extends StatelessWidget {
+class BaseDashboardScreen extends StatefulWidget {
   final VoidCallback onReset;
   final bool useLiquidMorph;
   final ValueChanged<bool> onToggleEffect;
@@ -108,6 +110,62 @@ class BaseDashboardScreen extends StatelessWidget {
     required this.useLiquidMorph,
     required this.onToggleEffect,
   });
+
+  @override
+  State<BaseDashboardScreen> createState() => _BaseDashboardScreenState();
+}
+
+class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
+  final ScrollController _scrollController = ScrollController();
+  double _scrollOffset = 0.0;
+  bool _isSnapping = false; // Cờ theo dõi trạng thái Snap để tránh lặp hoạt ảnh vô tận
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      setState(() {
+        _scrollOffset = _scrollController.offset;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  // Xử lý tự động Snap khi người dùng dừng cuộn ở khoảng giữa Morphing
+  void _handleScrollNotification(ScrollNotification notification) {
+    if (_isSnapping) return;
+
+    if (notification is ScrollEndNotification) {
+      final double offset = _scrollController.offset;
+      
+      // Khoảng diễn ra Morphing là từ 230px đến 370px
+      // Ngưỡng quyết định snap là điểm chính giữa 300px
+      if (offset > 0.0 && offset < 370.0) {
+        double targetOffset = 0.0; // Snap về hiển thị dạng Grid đầy đủ
+        if (offset >= 300.0) {
+          targetOffset = 370.0; // Snap lên dạng Tab bar bám dính gọn gàng
+        }
+
+        _isSnapping = true;
+        
+        // Thực hiện cuộn snap mượt mà bằng hoạt ảnh easeOutCubic
+        Future.microtask(() {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutCubic,
+          ).then((_) {
+            _isSnapping = false;
+          });
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,268 +182,255 @@ class BaseDashboardScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Khóa lại màn hình',
-            onPressed: onReset,
+            onPressed: widget.onReset,
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Chào buổi sáng,',
-              style: TextStyle(fontSize: 16, color: Color(0xFF94A3B8)),
-            ),
-            const Text(
-              'Tuan Nguyen 👋',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-            const SizedBox(height: 24),
-            
-            // Selector kiểu hiệu ứng
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildSelectorBtn('Circular', !useLiquidMorph, () => onToggleEffect(false)),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildSelectorBtn('Liquid Gooey', useLiquidMorph, () => onToggleEffect(true)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // Vị trí Y ban đầu của Grid trên screen (phù hợp với khoảng trống placeholder)
+          final double gridStartY = 502.0;
+          final double pinY = 0.0; // Bám dính ngay dưới AppBar
+          final double currentY = math.max(pinY, gridStartY - _scrollOffset);
 
-            // Balance Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF3B82F6).withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 10),
-                  )
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Tổng số dư tài khoản', style: TextStyle(color: Colors.white70)),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '\$124,580.00',
-                    style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildBalanceDetail('Thu nhập', '+\$12,450', Colors.greenAccent),
-                      _buildBalanceDetail('Chi tiêu', '-\$3,210', Colors.redAccent),
-                    ],
-                  )
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Demo Navigation Button
-            Builder(
-              builder: (context) {
-                return GestureDetector(
-                  onTapDown: (details) {
-                    Navigator.push(
-                      context,
-                      useLiquidMorph
-                          ? LiquidMorphPageRoute(
-                              page: const DetailScreen(),
-                              center: details.globalPosition,
-                            )
-                          : CircularRevealPageRoute(
-                              page: const DetailScreen(),
-                              center: details.globalPosition,
-                            ),
-                    );
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: useLiquidMorph
-                            ? [const Color(0xFFEC4899), const Color(0xFF8B5CF6)]
-                            : [const Color(0xFFF59E0B), const Color(0xFFD97706)],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (useLiquidMorph ? const Color(0xFF8B5CF6) : const Color(0xFFD97706)).withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        )
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.open_in_new_rounded, color: Colors.white),
-                        const SizedBox(width: 8),
-                        Text(
-                          useLiquidMorph
-                              ? 'Mở trang Chi tiết (Liquid Morph)'
-                              : 'Mở trang Chi tiết (Circular Route)',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-            ),
-
-            const SizedBox(height: 32),
-            const Text(
-              'Tính năng nhanh',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              children: [
-                 _buildQuickActionCard(
-                  context,
-                  Icons.swap_horiz_rounded,
-                  'Chuyển tiền',
-                  'Chuyển nhanh 24/7',
-                  const Color(0xFF8B5CF6),
-                  'Giao dịch chuyển khoản \$2,500.00 thành công!',
-                  true,
-                ),
-                _buildQuickActionCard(
-                  context,
-                  Icons.qr_code_scanner_rounded,
-                  'Quét mã QR',
-                  'Thanh toán tiện lợi',
-                  const Color(0xFF10B981),
-                  'Đã quét và tải thành công hóa đơn QR!',
-                  true,
-                ),
-                _buildQuickActionCard(
-                  context,
-                  Icons.receipt_long_rounded,
-                  'Hóa đơn',
-                  'Điện, nước, internet',
-                  const Color(0xFFF59E0B),
-                  'Lỗi kết nối máy chủ hóa đơn. Vui lòng thử lại!',
-                  false,
-                ),
-                _buildQuickActionCard(
-                  context,
-                  Icons.trending_up_rounded,
-                  'Đầu tư',
-                  'Quản lý danh mục',
-                  const Color(0xFFEC4899),
-                  'Đã cập nhật danh mục đầu tư Apple (AAPL) thành công!',
-                  true,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 32),
-            const Text(
-              'Hiệu ứng nâng cao',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            // Morphing Typography Card
-            Builder(
-              builder: (context) => GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const MorphingTypographyDemo(),
-                  ),
-                ),
-                child: Container(
-                  width: double.infinity,
+          return Stack(
+            children: [
+              // Lớp 1: Nội dung cuộn chính
+              NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  _handleScrollNotification(notification);
+                  return false; // Cho phép notification lan truyền tiếp tục
+                },
+                child: SingleChildScrollView(
+                  controller: _scrollController,
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF6366F1), Color(0xFFEC4899)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Chào buổi sáng,',
+                      style: TextStyle(fontSize: 16, color: Color(0xFF94A3B8)),
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF6366F1).withOpacity(0.35),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
+                    const Text(
+                      'Tuan Nguyen 👋',
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Selector kiểu hiệu ứng
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _buildSelectorBtn('Circular', !widget.useLiquidMorph, () => widget.onToggleEffect(false)),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildSelectorBtn('Liquid Gooey', widget.useLiquidMorph, () => widget.onToggleEffect(true)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Balance Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        child: const Icon(Icons.text_fields_rounded, color: Colors.white, size: 28),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF3B82F6).withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: const Offset(0, 10),
+                          )
+                        ],
                       ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Morphing Typography',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Tổng số dư tài khoản', style: TextStyle(color: Colors.white70)),
+                          const SizedBox(height: 8),
+                          const Text(
+                            '\$124,580.00',
+                            style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildBalanceDetail('Thu nhập', '+\$12,450', Colors.greenAccent),
+                              _buildBalanceDetail('Chi tiêu', '-\$3,210', Colors.redAccent),
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Demo Navigation Button
+                    Builder(
+                      builder: (context) {
+                        return GestureDetector(
+                          onTapDown: (details) {
+                            Navigator.push(
+                              context,
+                              widget.useLiquidMorph
+                                  ? LiquidMorphPageRoute(
+                                      page: const DetailScreen(),
+                                      center: details.globalPosition,
+                                    )
+                                  : CircularRevealPageRoute(
+                                      page: const DetailScreen(),
+                                      center: details.globalPosition,
+                                    ),
+                            );
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: widget.useLiquidMorph
+                                    ? [const Color(0xFFEC4899), const Color(0xFF8B5CF6)]
+                                    : [const Color(0xFFF59E0B), const Color(0xFFD97706)],
                               ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (widget.useLiquidMorph ? const Color(0xFF8B5CF6) : const Color(0xFFD97706)).withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                )
+                              ],
                             ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Text biến đổi thành text khác với 3 kiểu hiệu ứng',
-                              style: TextStyle(color: Colors.white70, fontSize: 12),
+                            alignment: Alignment.center,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.open_in_new_rounded, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Text(
+                                  widget.useLiquidMorph
+                                      ? 'Mở trang Chi tiết (Liquid Morph)'
+                                      : 'Mở trang Chi tiết (Circular Route)',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
+                        );
+                      }
+                    ),
+
+                    const SizedBox(height: 32),
+                    const Text(
+                      'Tính năng nhanh',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Khoảng trống Placeholder để Grid bám dính bám vào mà không làm nhảy layout dưới
+                    const SizedBox(height: 236.0),
+
+                    const SizedBox(height: 32),
+                    const Text(
+                      'Hiệu ứng nâng cao',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const SizedBox(height: 16),
+                    // Morphing Typography Card
+                    Builder(
+                      builder: (context) => GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MorphingTypographyDemo(),
+                          ),
+                        ),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF334155), Color(0xFF1E293B)],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white.withOpacity(0.05)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Morphing Typography',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Text biến đổi thành text khác với 3 kiểu hiệu ứng',
+                                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.arrow_forward_ios_rounded, color: Colors.white60, size: 16),
+                            ],
+                          ),
                         ),
                       ),
-                      const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white60, size: 16),
-                    ],
-                  ),
+                    ),
+
+                    // Thêm danh sách giao dịch gần đây để màn hình có thể cuộn sâu hơn
+                    const SizedBox(height: 32),
+                    const Text(
+                      'Giao dịch gần đây',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTransactionItem('Nguyễn Văn A', 'Chuyển tiền mua quà', '-\$120.00', Colors.redAccent),
+                    _buildTransactionItem('Salary July', 'Nhận lương tháng 7', '+\$4,500.00', Colors.greenAccent),
+                    _buildTransactionItem('Electric Bill', 'Thanh toán tiền điện', '-\$85.50', Colors.redAccent),
+                    _buildTransactionItem('Trần Thị B', 'Hoàn trả tiền vay', '+\$300.00', Colors.greenAccent),
+                    _buildTransactionItem('Netflix Premium', 'Gia hạn gói dịch vụ', '-\$15.00', Colors.redAccent),
+                    const SizedBox(height: 120), // Padding thêm ở dưới cùng để cuộn mượt mà
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+
+              // Lớp 2: Thanh tính năng nhanh tự biến dạng và bám dính khi cuộn
+              Positioned(
+                left: 0,
+                top: currentY,
+                right: 0,
+                child: MorphingQuickActions(
+                  scrollOffset: _scrollOffset,
+                  parentWidth: constraints.maxWidth,
+                ),
+              ),
+            ],
+          );
+        }
       ),
     );
   }
@@ -438,57 +483,45 @@ class BaseDashboardScreen extends StatelessWidget {
       ],
     );
   }
-
-  Widget _buildQuickActionCard(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String desc,
-    Color color,
-    String toastMsg,
-    bool isSuccess,
-  ) {
-    return GestureDetector(
-      onTapDown: (details) {
-        // Gửi tọa độ điểm chạm đến FluidToastManager để bắn tia nước từ đó
-        FluidToastManager.show(
-          context,
-          message: toastMsg,
-          tapPosition: details.globalPosition,
-          isSuccess: isSuccess,
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 28),
+  Widget _buildTransactionItem(String name, String detail, String amount, Color amountColor) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: amountColor.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+            child: Icon(
+              amount.startsWith('+') ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+              color: amountColor,
+              size: 20,
             ),
-            const SizedBox(height: 4),
-            Text(
-              desc,
-              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 2),
+                Text(detail, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+              ],
             ),
-          ],
-        ),
+          ),
+          Text(
+            amount,
+            style: TextStyle(fontWeight: FontWeight.bold, color: amountColor, fontSize: 15),
+          ),
+        ],
       ),
     );
   }
