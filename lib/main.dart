@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:untitled/circular_reveal_transition.dart';
 import 'package:untitled/fluid_morphing_transition.dart';
+import 'package:untitled/fluid_toast.dart';
 import 'package:untitled/morphing_typography.dart';
 
 void main() {
@@ -274,29 +275,41 @@ class BaseDashboardScreen extends StatelessWidget {
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
               children: [
-                _buildQuickActionCard(
+                 _buildQuickActionCard(
+                  context,
                   Icons.swap_horiz_rounded,
                   'Chuyển tiền',
                   'Chuyển nhanh 24/7',
                   const Color(0xFF8B5CF6),
+                  'Giao dịch chuyển khoản \$2,500.00 thành công!',
+                  true,
                 ),
                 _buildQuickActionCard(
+                  context,
                   Icons.qr_code_scanner_rounded,
                   'Quét mã QR',
                   'Thanh toán tiện lợi',
                   const Color(0xFF10B981),
+                  'Đã quét và tải thành công hóa đơn QR!',
+                  true,
                 ),
                 _buildQuickActionCard(
+                  context,
                   Icons.receipt_long_rounded,
                   'Hóa đơn',
                   'Điện, nước, internet',
                   const Color(0xFFF59E0B),
+                  'Lỗi kết nối máy chủ hóa đơn. Vui lòng thử lại!',
+                  false,
                 ),
                 _buildQuickActionCard(
+                  context,
                   Icons.trending_up_rounded,
                   'Đầu tư',
                   'Quản lý danh mục',
                   const Color(0xFFEC4899),
+                  'Đã cập nhật danh mục đầu tư Apple (AAPL) thành công!',
+                  true,
                 ),
               ],
             ),
@@ -426,37 +439,56 @@ class BaseDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActionCard(IconData icon, String title, String desc, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
+  Widget _buildQuickActionCard(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String desc,
+    Color color,
+    String toastMsg,
+    bool isSuccess,
+  ) {
+    return GestureDetector(
+      onTapDown: (details) {
+        // Gửi tọa độ điểm chạm đến FluidToastManager để bắn tia nước từ đó
+        FluidToastManager.show(
+          context,
+          message: toastMsg,
+          tapPosition: details.globalPosition,
+          isSuccess: isSuccess,
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 28),
             ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            desc,
-            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              desc,
+              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+            ),
+          ],
+        ),
       ),
     );
   }
