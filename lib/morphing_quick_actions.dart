@@ -13,11 +13,13 @@ import 'package:untitled/fluid_toast.dart';
 class MorphingQuickActions extends StatelessWidget {
   final double scrollOffset;
   final double parentWidth;
+  final bool isDarkMode;
 
   const MorphingQuickActions({
     super.key,
     required this.scrollOffset,
     required this.parentWidth,
+    required this.isDarkMode,
   });
 
   @override
@@ -107,11 +109,11 @@ class MorphingQuickActions extends StatelessWidget {
         vertical: _lerp(0.0, 8.0, t),
       ),
       decoration: BoxDecoration(
-        // Khi biến thành Sticky Tab, đổi sang nền tối đặc để che nội dung cuộn bên dưới
-        color: Color.lerp(Colors.transparent, const Color(0xFF0F172A), t),
+        // Khi biến thành Sticky Tab, đổi sang nền phù hợp với theme hiện tại
+        color: Color.lerp(Colors.transparent, isDarkMode ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), t),
         border: Border(
           bottom: BorderSide(
-            color: Color.lerp(Colors.transparent, Colors.white12, t)!,
+            color: Color.lerp(Colors.transparent, isDarkMode ? Colors.white12 : Colors.black12, t)!,
             width: t,
           ),
         ),
@@ -189,9 +191,20 @@ class MorphingQuickActions extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: isDarkMode ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(_lerp(20.0, 12.0, t)), // Bo góc nhọn hơn khi làm tab
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(
+            color: isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.08),
+          ),
+          boxShadow: isDarkMode
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ],
         ),
         child: Stack(
           children: [
@@ -223,7 +236,7 @@ class MorphingQuickActions extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: titleFontSize,
-                  color: Colors.white,
+                  color: isDarkMode ? Colors.white : const Color(0xFF0F172A),
                 ),
               ),
             ),
@@ -237,8 +250,8 @@ class MorphingQuickActions extends StatelessWidget {
                   opacity: descOpacity,
                   child: Text(
                     item.desc,
-                    style: const TextStyle(
-                      color: Color(0xFF94A3B8),
+                    style: TextStyle(
+                      color: isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                       fontSize: 10,
                     ),
                   ),

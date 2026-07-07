@@ -35,10 +35,43 @@ class CircularRevealDemo extends StatefulWidget {
   State<CircularRevealDemo> createState() => _CircularRevealDemoState();
 }
 
-class _CircularRevealDemoState extends State<CircularRevealDemo> {
+class _CircularRevealDemoState extends State<CircularRevealDemo>
+    with TickerProviderStateMixin {
   Offset _tapPosition = Offset.zero;
   bool _showOverlay = true;
   bool _useLiquidMorph = true; // Mặc định dùng Liquid Morph mới
+
+  // Lưu trữ vị trí cuộn hiện tại của Dashboard để đồng bộ hóa hoàn hảo khi chuyển theme
+  double _scrollOffset = 0.0;
+
+  // Các biến phục vụ đổi Theme (Dark/Light mode) lan tỏa vòng tròn
+  bool _isDarkMode = true;
+  bool _isThemeTransitioning = false;
+  bool _oldThemeDarkMode = true;
+  Offset _themeToggleCenter = Offset.zero;
+  late AnimationController _themeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _themeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 750),
+    );
+    _themeController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _isThemeTransitioning = false;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _themeController.dispose();
+    super.dispose();
+  }
 
   void _handleTap(TapDownDetails details) {
     if (!_showOverlay) return;
@@ -55,45 +88,103 @@ class _CircularRevealDemoState extends State<CircularRevealDemo> {
     });
   }
 
+  // Hàm chuyển đổi theme và kích hoạt hoạt ảnh Circular Reveal
+  void _toggleTheme(Offset tapPosition) {
+    if (_isThemeTransitioning) return;
+    setState(() {
+      _oldThemeDarkMode = _isDarkMode;
+      _isDarkMode = !_isDarkMode;
+      _themeToggleCenter = tapPosition;
+      _isThemeTransitioning = true;
+    });
+    _themeController.forward(from: 0.0);
+  }
+
+  Widget _buildMainContent({required bool isDarkMode, double initialScrollOffset = 0.0, Key? key}) {
+    return _useLiquidMorph
+        ? LiquidMorphOverlay(
+            key: key,
+            showOverlay: _showOverlay,
+            tapPosition: _tapPosition == Offset.zero ? null : _tapPosition,
+            overlay: GestureDetector(
+              onTapDown: _handleTap,
+              child: const OverlayScreen(effectName: 'LIQUID MORPH'),
+            ),
+            child: BaseDashboardScreen(
+              key: key != null ? ValueKey('${(key as ValueKey).value}_inner') : null,
+              onReset: _reset,
+              useLiquidMorph: _useLiquidMorph,
+              isDarkMode: isDarkMode,
+              onToggleTheme: _toggleTheme,
+              initialScrollOffset: initialScrollOffset,
+              onScroll: (offset) {
+                _scrollOffset = offset;
+              },
+              onToggleEffect: (val) {
+                setState(() {
+                  _useLiquidMorph = val;
+                });
+              },
+            ),
+          )
+        : CircularRevealOverlay(
+            key: key,
+            showOverlay: _showOverlay,
+            tapPosition: _tapPosition == Offset.zero ? null : _tapPosition,
+            overlay: GestureDetector(
+              onTapDown: _handleTap,
+              child: const OverlayScreen(effectName: 'CIRCULAR REVEAL'),
+            ),
+            child: BaseDashboardScreen(
+              key: key != null ? ValueKey('${(key as ValueKey).value}_inner') : null,
+              onReset: _reset,
+              useLiquidMorph: _useLiquidMorph,
+              isDarkMode: isDarkMode,
+              onToggleTheme: _toggleTheme,
+              initialScrollOffset: initialScrollOffset,
+              onScroll: (offset) {
+                _scrollOffset = offset;
+              },
+              onToggleEffect: (val) {
+                setState(() {
+                  _useLiquidMorph = val;
+                });
+              },
+            ),
+          );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: _useLiquidMorph
-          ? LiquidMorphOverlay(
-              showOverlay: _showOverlay,
-              tapPosition: _tapPosition == Offset.zero ? null : _tapPosition,
-              overlay: GestureDetector(
-                onTapDown: _handleTap,
-                child: const OverlayScreen(effectName: 'LIQUID MORPH'),
-              ),
-              child: BaseDashboardScreen(
-                onReset: _reset,
-                useLiquidMorph: _useLiquidMorph,
-                onToggleEffect: (val) {
-                  setState(() {
-                    _useLiquidMorph = val;
-                  });
-                },
-              ),
-            )
-          : CircularRevealOverlay(
-              showOverlay: _showOverlay,
-              tapPosition: _tapPosition == Offset.zero ? null : _tapPosition,
-              overlay: GestureDetector(
-                onTapDown: _handleTap,
-                child: const OverlayScreen(effectName: 'CIRCULAR REVEAL'),
-              ),
-              child: BaseDashboardScreen(
-                onReset: _reset,
-                useLiquidMorph: _useLiquidMorph,
-                onToggleEffect: (val) {
-                  setState(() {
-                    _useLiquidMorph = val;
-                  });
-                },
-              ),
+      body: Stack(
+        children: [
+          // 1. Giao diện chính luôn giữ Key cố định để bảo toàn State và vị trí cuộn
+          _buildMainContent(
+            isDarkMode: _isDarkMode,
+            initialScrollOffset: _scrollOffset,
+            key: const ValueKey('main_dashboard_root'),
+          ),
+          // 2. Giao diện theme cũ được đục lỗ tròn to dần ra để lộ theme mới ở dưới
+          if (_isThemeTransitioning)
+            AnimatedBuilder(
+              animation: _themeController,
+              builder: (context, child) {
+                return ClipPath(
+                  clipper: CircularHoleClipper(
+                    revealPercent: _themeController.value, // Đục lỗ to dần từ tâm chạm
+                    center: _themeToggleCenter,
+                  ),
+                  child: _buildMainContent(
+                    isDarkMode: _oldThemeDarkMode,
+                    initialScrollOffset: _scrollOffset,
+                    key: const ValueKey('theme_transition_overlay'),
+                  ),
+                );
+              },
             ),
+        ],
+      ),
     );
   }
 }
@@ -103,12 +194,20 @@ class BaseDashboardScreen extends StatefulWidget {
   final VoidCallback onReset;
   final bool useLiquidMorph;
   final ValueChanged<bool> onToggleEffect;
+  final bool isDarkMode;
+  final ValueChanged<Offset> onToggleTheme;
+  final double initialScrollOffset;
+  final ValueChanged<double> onScroll;
 
   const BaseDashboardScreen({
     super.key,
     required this.onReset,
     required this.useLiquidMorph,
     required this.onToggleEffect,
+    required this.isDarkMode,
+    required this.onToggleTheme,
+    required this.initialScrollOffset,
+    required this.onScroll,
   });
 
   @override
@@ -116,17 +215,20 @@ class BaseDashboardScreen extends StatefulWidget {
 }
 
 class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
-  final ScrollController _scrollController = ScrollController();
+  late ScrollController _scrollController;
   double _scrollOffset = 0.0;
   bool _isSnapping = false; // Cờ theo dõi trạng thái Snap để tránh lặp hoạt ảnh vô tận
 
   @override
   void initState() {
     super.initState();
+    _scrollOffset = widget.initialScrollOffset;
+    _scrollController = ScrollController(initialScrollOffset: widget.initialScrollOffset);
     _scrollController.addListener(() {
       setState(() {
         _scrollOffset = _scrollController.offset;
       });
+      widget.onScroll(_scrollController.offset);
     });
   }
 
@@ -169,18 +271,46 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = widget.isDarkMode;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Slate 900
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), // Slate 900 / Slate 50
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'DASHBOARD',
-          style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1,
+            color: isDark ? Colors.white : const Color(0xFF0F172A),
+          ),
         ),
         actions: [
+          // Nút chuyển đổi Dark/Light Mode với hiệu ứng Circular Reveal lan tỏa
+          GestureDetector(
+            onTapDown: (details) {
+              widget.onToggleTheme(details.globalPosition);
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                color: isDark ? Colors.amberAccent : const Color(0xFF1E293B),
+                size: 20,
+              ),
+            ),
+          ),
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
+            icon: Icon(
+              Icons.refresh_rounded,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
             tooltip: 'Khóa lại màn hình',
             onPressed: widget.onReset,
           ),
@@ -208,13 +338,13 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Chào buổi sáng,',
-                      style: TextStyle(fontSize: 16, color: Color(0xFF94A3B8)),
+                      style: TextStyle(fontSize: 16, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                     ),
-                    const Text(
+                    Text(
                       'Tuan Nguyen 👋',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     ),
                     const SizedBox(height: 24),
                     
@@ -222,9 +352,20 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
+                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                        border: Border.all(
+                          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.06),
+                        ),
+                        boxShadow: isDark
+                            ? null
+                            : [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.04),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                )
+                              ],
                       ),
                       child: Row(
                         children: [
@@ -337,9 +478,9 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
                     ),
 
                     const SizedBox(height: 32),
-                    const Text(
+                    Text(
                       'Tính năng nhanh',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     ),
                     const SizedBox(height: 16),
                     
@@ -347,9 +488,9 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
                     const SizedBox(height: 236.0),
 
                     const SizedBox(height: 32),
-                    const Text(
+                    Text(
                       'Hiệu ứng nâng cao',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     ),
                     const SizedBox(height: 16),
                     // Morphing Typography Card
@@ -365,13 +506,28 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF334155), Color(0xFF1E293B)],
-                            ),
+                            gradient: isDark
+                                ? const LinearGradient(
+                                    colors: [Color(0xFF334155), Color(0xFF1E293B)],
+                                  )
+                                : const LinearGradient(
+                                    colors: [Color(0xFFE2E8F0), Color(0xFFF1F5F9)],
+                                  ),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white.withOpacity(0.05)),
+                            border: Border.all(
+                              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.06),
+                            ),
+                            boxShadow: isDark
+                                ? null
+                                : [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    )
+                                  ],
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
                               Expanded(
                                 child: Column(
@@ -380,20 +536,27 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
                                     Text(
                                       'Morphing Typography',
                                       style: TextStyle(
-                                        color: Colors.white,
+                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
                                       ),
                                     ),
-                                    SizedBox(height: 4),
+                                    const SizedBox(height: 4),
                                     Text(
                                       'Text biến đổi thành text khác với 3 kiểu hiệu ứng',
-                                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white70 : const Color(0xFF475569),
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
-                              Icon(Icons.arrow_forward_ios_rounded, color: Colors.white60, size: 16),
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                                size: 16,
+                              ),
                             ],
                           ),
                         ),
@@ -402,9 +565,9 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
 
                     // Thêm danh sách giao dịch gần đây để màn hình có thể cuộn sâu hơn
                     const SizedBox(height: 32),
-                    const Text(
+                    Text(
                       'Giao dịch gần đây',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     ),
                     const SizedBox(height: 16),
                     _buildTransactionItem('Nguyễn Văn A', 'Chuyển tiền mua quà', '-\$120.00', Colors.redAccent),
@@ -426,6 +589,7 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
                 child: MorphingQuickActions(
                   scrollOffset: _scrollOffset,
                   parentWidth: constraints.maxWidth,
+                  isDarkMode: isDark,
                 ),
               ),
             ],
@@ -436,6 +600,7 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
   }
 
   Widget _buildSelectorBtn(String label, bool isSelected, VoidCallback onTap) {
+    final bool isDark = widget.isDarkMode;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -449,7 +614,7 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white60,
+            color: isSelected ? Colors.white : (isDark ? Colors.white60 : const Color(0xFF64748B)),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -484,20 +649,32 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
     );
   }
   Widget _buildTransactionItem(String name, String detail, String amount, Color amountColor) {
+    final bool isDark = widget.isDarkMode;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.05),
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                )
+              ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: amountColor.withValues(alpha: 0.1),
+              color: amountColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -511,9 +688,21 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                Text(
+                  name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(detail, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                Text(
+                  detail,
+                  style: TextStyle(
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           ),
