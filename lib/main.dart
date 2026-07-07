@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:untitled/circular_reveal_transition.dart';
 import 'package:untitled/fluid_morphing_transition.dart';
+import 'package:untitled/morphing_typography.dart';
 
 void main() {
   runApp(const MyApp());
@@ -298,6 +299,77 @@ class BaseDashboardScreen extends StatelessWidget {
                   const Color(0xFFEC4899),
                 ),
               ],
+            ),
+
+            const SizedBox(height: 32),
+            const Text(
+              'Hiệu ứng nâng cao',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            // Morphing Typography Card
+            Builder(
+              builder: (context) => GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MorphingTypographyDemo(),
+                  ),
+                ),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFFEC4899)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF6366F1).withOpacity(0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.text_fields_rounded, color: Colors.white, size: 28),
+                      ),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Morphing Typography',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Text biến đổi thành text khác với 3 kiểu hiệu ứng',
+                              style: TextStyle(color: Colors.white70, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white60, size: 16),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         ),
