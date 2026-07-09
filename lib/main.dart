@@ -12,6 +12,7 @@ import 'package:untitled/disintegrate_transition.dart';
 import 'package:untitled/shatter_glass_transition.dart';
 import 'package:untitled/glitch_transition.dart';
 import 'package:untitled/airdrop_wave_transition.dart';
+import 'package:untitled/theme_switch.dart';
 
 void main() {
   runApp(const MyApp());
@@ -659,6 +660,19 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
                       icon: Icons.wifi_tethering_rounded,
                       gradientColors: const [Color(0xFF0EA5E9), Color(0xFF6366F1)],
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AirdropWaveTransitionDemo())),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Theme Switch Card
+                    _buildEffectCard(
+                      context: context,
+                      isDark: isDark,
+                      title: 'Day / Night Switch',
+                      subtitle: 'Toggle ngày đêm có mây, mặt trăng, ngôi sao',
+                      icon: Icons.wb_twilight_rounded,
+                      gradientColors: const [Color(0xFF3D7EAE), Color(0xFF1D1F2C)],
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThemeSwitchDemo())),
                     ),
 
                     // Thêm danh sách giao dịch gần đây để màn hình có thể cuộn sâu hơn
