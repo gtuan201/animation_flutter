@@ -5,6 +5,13 @@ import 'package:untitled/fluid_morphing_transition.dart';
 import 'package:untitled/fluid_toast.dart';
 import 'package:untitled/morphing_typography.dart';
 import 'package:untitled/morphing_quick_actions.dart';
+import 'package:untitled/shutter_transition.dart';
+import 'package:untitled/origami_transition.dart';
+import 'package:untitled/pixelate_transition.dart';
+import 'package:untitled/disintegrate_transition.dart';
+import 'package:untitled/shatter_glass_transition.dart';
+import 'package:untitled/glitch_transition.dart';
+import 'package:untitled/airdrop_wave_transition.dart';
 
 void main() {
   runApp(const MyApp());
@@ -563,6 +570,97 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
                       ),
                     ),
 
+                    const SizedBox(height: 12),
+
+                    // Shutter Transition Card
+                    _buildEffectCard(
+                      context: context,
+                      isDark: isDark,
+                      title: 'Shutter Transition',
+                      subtitle: 'Cửa sập đóng mở - các dải ngang xoay tiết lộ trang mới',
+                      icon: Icons.blinds_rounded,
+                      gradientColors: const [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ShutterTransitionDemo())),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Origami Fold Card
+                    _buildEffectCard(
+                      context: context,
+                      isDark: isDark,
+                      title: 'Origami Fold',
+                      subtitle: 'Màn hình gấp lại như giấy origami rồi mở ra',
+                      icon: Icons.auto_awesome_mosaic_rounded,
+                      gradientColors: const [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrigamiTransitionDemo())),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Pixelate Dissolve Card
+                    _buildEffectCard(
+                      context: context,
+                      isDark: isDark,
+                      title: 'Pixelate Dissolve',
+                      subtitle: 'Phân rã thành pixel lan tỏa từ điểm chạm',
+                      icon: Icons.grid_view_rounded,
+                      gradientColors: const [Color(0xFF10B981), Color(0xFF059669)],
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PixelateTransitionDemo())),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Disintegrate Card
+                    _buildEffectCard(
+                      context: context,
+                      isDark: isDark,
+                      title: 'Disintegrate',
+                      subtitle: 'Tan biến thành tro bụi bay theo gió lộ trang kế',
+                      icon: Icons.grain_rounded,
+                      gradientColors: const [Color(0xFFFB7185), Color(0xFFF59E0B)],
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DisintegrateTransitionDemo())),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Shatter Glass Card
+                    _buildEffectCard(
+                      context: context,
+                      isDark: isDark,
+                      title: 'Shatter Glass',
+                      subtitle: 'Vỡ kính thành mảnh rơi xoay theo trọng lực',
+                      icon: Icons.broken_image_rounded,
+                      gradientColors: const [Color(0xFF60A5FA), Color(0xFFA78BFA)],
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ShatterGlassTransitionDemo())),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Glitch Card
+                    _buildEffectCard(
+                      context: context,
+                      isDark: isDark,
+                      title: 'Glitch / Datamosh',
+                      subtitle: 'Nhiễu số cyberpunk tách kênh RGB rồi cắt cảnh',
+                      icon: Icons.sensors_rounded,
+                      gradientColors: const [Color(0xFF22D3EE), Color(0xFFE879F9)],
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GlitchTransitionDemo())),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // AirDrop Wave Card
+                    _buildEffectCard(
+                      context: context,
+                      isDark: isDark,
+                      title: 'AirDrop Wave',
+                      subtitle: 'Sóng cuộn phát sáng lan tỏa kiểu AirDrop iPhone',
+                      icon: Icons.wifi_tethering_rounded,
+                      gradientColors: const [Color(0xFF0EA5E9), Color(0xFF6366F1)],
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AirdropWaveTransitionDemo())),
+                    ),
+
                     // Thêm danh sách giao dịch gần đây để màn hình có thể cuộn sâu hơn
                     const SizedBox(height: 32),
                     Text(
@@ -648,6 +746,62 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
       ],
     );
   }
+  Widget _buildEffectCard({
+    required BuildContext context,
+    required bool isDark,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Color> gradientColors,
+    required VoidCallback onTap,
+  }) {
+    return Builder(
+      builder: (ctx) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: isDark
+                ? const LinearGradient(colors: [Color(0xFF334155), Color(0xFF1E293B)])
+                : const LinearGradient(colors: [Color(0xFFE2E8F0), Color(0xFFF1F5F9)]),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.06),
+            ),
+            boxShadow: isDark
+                ? null
+                : [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: gradientColors),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 3),
+                    Text(subtitle, style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF475569), fontSize: 12)),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios_rounded, color: isDark ? Colors.white60 : const Color(0xFF64748B), size: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTransactionItem(String name, String detail, String amount, Color amountColor) {
     final bool isDark = widget.isDarkMode;
     return Container(
