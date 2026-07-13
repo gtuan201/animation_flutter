@@ -13,6 +13,8 @@ import 'package:untitled/shatter_glass_transition.dart';
 import 'package:untitled/glitch_transition.dart';
 import 'package:untitled/airdrop_wave_transition.dart';
 import 'package:untitled/theme_switch.dart';
+import 'package:untitled/interactive_shader.dart';
+import 'package:untitled/practical_shaders.dart';
 
 void main() {
   runApp(const MyApp());
@@ -673,6 +675,32 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
                       icon: Icons.wb_twilight_rounded,
                       gradientColors: const [Color(0xFF3D7EAE), Color(0xFF1D1F2C)],
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThemeSwitchDemo())),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Interactive Shader Card
+                    _buildEffectCard(
+                      context: context,
+                      isDark: isDark,
+                      title: 'Interactive Shader',
+                      subtitle: 'Fragment shader GLSL plasma phản ứng chạm & thời gian',
+                      icon: Icons.auto_fix_high_rounded,
+                      gradientColors: const [Color(0xFF7C3AED), Color(0xFF06B6D4)],
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InteractiveShaderDemo())),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Practical Shaders Card
+                    _buildEffectCard(
+                      context: context,
+                      isDark: isDark,
+                      title: 'Practical Shaders',
+                      subtitle: 'Shimmer skeleton · Holographic card · Aurora nền',
+                      icon: Icons.layers_rounded,
+                      gradientColors: const [Color(0xFF00C853), Color(0xFF0055FF)],
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PracticalShadersDemo())),
                     ),
 
                     // Thêm danh sách giao dịch gần đây để màn hình có thể cuộn sâu hơn
